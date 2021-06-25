@@ -1,0 +1,119 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: sharding-jdbc-demo
+  # 配置真实数据源
+  shardingsphere:
+    datasource:
+      names: orderdb0,orderdb1,user1
+      # 配置第1个数据源
+      orderdb0:
+        # 数据库连接池类名称
+        type: com.alibaba.druid.pool.DruidDataSource
+        # 数据库驱动类名
+        driver-class-name: com.mysql.jdbc.Driver
+        # 数据库url连接
+        url: jdbc:mysql://localhost:3306/orderdb0?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+        #数据库用户名
+        username: root
+        # 数据库密码
+        password: 123456
+      # 配置第2个数据源
+      orderdb1:
+        # 数据库连接池类名称
+        type: com.alibaba.druid.pool.DruidDataSource
+        # 数据库驱动类名
+        driver-class-name: com.mysql.jdbc.Driver
+        # 数据库url连接
+        url: jdbc:mysql://localhost:3306/orderdb1?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+        #数据库用户名
+        username: root
+        # 数据库密码
+        password: 123456
+      user1:
+        # 数据库连接池类名称
+        type: com.alibaba.druid.pool.DruidDataSource
+        # 数据库驱动类名
+        driver-class-name: com.mysql.jdbc.Driver
+        # 数据库url连接
+        url: jdbc:mysql://localhost:3306/user1?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+        #数据库用户名
+        username: root
+        # 数据库密码
+        password: 123456
+
+
+    # 配置 user 表规则
+    sharding:
+      tables:
+        #最好个表都写一个规则
+        user:
+          actual-data-nodes: user$->{1}.user
+          table-strategy:
+            inline:
+              #分片列名称
+              sharding-column: id
+              #分片算法行表达式 #注册列出
+              #algorithm-expression: test_user_$->{id % 2}
+              algorithm-expression: user
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+
+        test_user:
+          #注册列出
+          #actual-data-nodes: orderdb$->{0..1}.test_user_$->{0..1}
+          actual-data-nodes: orderdb$->{0..1}.test_user
+          # 配置分表策略 主键取模 0在0表 1在1表
+          table-strategy:
+            inline:
+              #分片列名称
+              sharding-column: id
+              #分片算法行表达式 #注册列出
+              #algorithm-expression: test_user_$->{id % 2}
+              algorithm-expression: test_user
+          # 主键策略 雪花算法
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+
+        sys_dict:
+         key-generator:
+          column: id
+          type: SNOWFLAKE
+      # 配置分库策略 主键取模0在0库 1在1库
+#      default-database-strategy:
+#        inline:
+#          sharding-column: id
+          #分片算法行表达式
+          #algorithm-expression: orderdb$->{id % 2}
+      broadcast-tables: sys_dict
+    # 打开sql控制台输出日志
+    props:
+      sql:
+        show: true
+
+  main:
+    allow-bean-definition-overriding: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+mybatis-plus:
+  type-aliases-package: com.calvin.sharding.pojo
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    jdbc-type-for-null: null
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl #开启sql日志
+  global-config:
+    banner: false
+
+
+
+
+
